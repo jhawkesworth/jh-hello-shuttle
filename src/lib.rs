@@ -9,17 +9,17 @@ use rocket::response::status;
 use rocket::request::FromParam;
 
 struct IntTemp {
-    degrees: i32
+    degrees: f32
 }
 
 impl<'a> FromParam<'a> for IntTemp<> {
     type Error = &'a str;
-
     fn from_param(param: &'a str) -> Result<Self, Self::Error> {
-        param.chars().all(|c| c.is_alphanumeric() || c.eq_ignore_ascii_case(&'-'))
-            .then(|| IntTemp{degrees: param.parse::<i32>().unwrap()})
+        param.chars().all(|c| c.is_alphanumeric() || c.eq_ignore_ascii_case(&'-') || c.eq_ignore_ascii_case(&'.'))
+            .then(|| IntTemp{degrees: param.parse::<f32>().unwrap()})
             .ok_or(param)
     }
+    // TODO can't be lower than -459.67 F / -273 C
 }
 
 #[catch(404)] fn not_found() -> &'static str { "Nothing here, sorry!" }
@@ -48,13 +48,13 @@ fn index() -> &'static str {
 
 #[get("/ctof/<celsius>")]
 fn c_to_f(celsius: IntTemp) -> Option<String> {
-    let converted = (celsius.degrees * 9 / 5 ) +32;
+    let converted = (celsius.degrees * 9.0 / 5.0 ) +32.0;
     Option::from(converted.to_string())
 }
 
 #[get("/ftoc/<farenheit>")]
 fn f_to_c(farenheit: IntTemp) -> Option<String> {
-    let converted = (farenheit.degrees - 32) * 5 / 9;
+    let converted = (farenheit.degrees - 32.0) * 5.0 / 9.0;
     Option::from(converted.to_string())
 }
 
@@ -98,5 +98,11 @@ mod tests {
         // 50 F = 10 C.  ish
         let result = f_to_c(IntTemp { degrees: 50 });
         assert_eq!(result, Option::Some(String::from("10")));
+    }
+
+    #[test]
+    fn dotallowed() {
+        let c = '.';
+        assert!(c.eq_ignore_ascii_case(&'.'));
     }
 }
