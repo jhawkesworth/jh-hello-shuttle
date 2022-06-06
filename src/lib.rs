@@ -19,6 +19,7 @@ impl<'a> FromParam<'a> for IntTemp<> {
             Ok(parsed) => Ok(IntTemp { degrees: parsed }),
             Err(..) => Err(param)
         }
+        // TODO stop below-absolute zero calculations
         // match parse_result {
         //     Ok(parsed) => {
         //         if &parsed > &-459.66 {
