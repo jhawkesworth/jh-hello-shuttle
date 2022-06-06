@@ -2,10 +2,9 @@
 extern crate rocket;
 
 
-
 // use rocket_dyn_templates::{Template, context};
 use rocket::{Build, Rocket};
-use rocket::response::status;
+//use rocket::response::status;
 use rocket::request::FromParam;
 
 struct IntTemp {
@@ -15,11 +14,23 @@ struct IntTemp {
 impl<'a> FromParam<'a> for IntTemp<> {
     type Error = &'a str;
     fn from_param(param: &'a str) -> Result<Self, Self::Error> {
-        param.chars().all(|c| c.is_alphanumeric() || c.eq_ignore_ascii_case(&'-') || c.eq_ignore_ascii_case(&'.'))
-            .then(|| IntTemp{degrees: param.parse::<f32>().unwrap()})
-            .ok_or(param)
+        let parse_result = param.parse::<f32>();
+        match parse_result {
+            Ok(parsed) => Ok(IntTemp { degrees: parsed }),
+            Err(..) => Err(param)
+        }
+        // match parse_result {
+        //     Ok(parsed) => {
+        //         if &parsed > &-459.66 {
+        //             Ok(IntTemp { degrees: parsed })
+        //         } else {
+        //             Err(param) // below absolute zero
+        //         },
+        //     Err(..) => Err(param)
+        // }
+        //     _ => { Err("should never get here") }
+        // }
     }
-    // TODO can't be lower than -459.67 F / -273 C
 }
 
 #[catch(404)] fn not_found() -> &'static str { "Nothing here, sorry!" }
@@ -36,14 +47,9 @@ impl<'a> FromParam<'a> for IntTemp<> {
 //     Template::render("index", context! { greeting: "Hello, world!  I am an index page", })
 // }
 
-#[get("/hello")]
-fn hello() -> &'static str {
-    "Hello, world!"
-}
-
 #[get("/")]
 fn index() -> &'static str {
-    "Hello, world! I am an index page"
+    "Hello.  Welcome to the least user-friendly temperature convertor on the web.\n\nGET https://jh-hello-shuttle.shuttleapp.rs/ftoc/<farenheit> - returns temperature in Celsius\n\nGET https://jh-hello-shuttle.shuttleapp.rs/ctof/<celsuis> - returns temperature in Farenheit\n\nYes, it doesn't understand absolute zero yet.  Use at your own risk.  Enjoy!"
 }
 
 #[get("/ctof/<celsius>")]
@@ -59,13 +65,12 @@ fn f_to_c(farenheit: IntTemp) -> Option<String> {
 }
 
 
-
 #[shuttle_service::main]
 async fn rocket() -> Result<Rocket<Build>, shuttle_service::Error> {
     let rocket = rocket::build()
         .register("/duff", catchers![just_500])
         .register("/", catchers![not_found, just_500])
-        .mount("/", routes![index, hello, c_to_f, f_to_c])
+        .mount("/", routes![index, c_to_f, f_to_c])
         // as of 0.3.0 shuttle just does not support anything external to the compiled .so
         // so we can't use rocket's dynamic template support at the moment.
         //.mount("/templates", routes![hello])
@@ -80,11 +85,6 @@ async fn rocket() -> Result<Rocket<Build>, shuttle_service::Error> {
 mod tests {
 
     use super::*;
-    #[test]
-    fn it_works() {
-        let result = 2 + 2;
-        assert_eq!(result, 4);
-    }
 
     #[test]
     fn c_to_f_works() {
@@ -95,14 +95,9 @@ mod tests {
 
     #[test]
     fn f_to_c_works() {
-        // 50 F = 10 C.  ish
+        // 50 F = 10 C.
         let result = f_to_c(IntTemp { degrees: 50 });
         assert_eq!(result, Option::Some(String::from("10")));
     }
 
-    #[test]
-    fn dotallowed() {
-        let c = '.';
-        assert!(c.eq_ignore_ascii_case(&'.'));
-    }
 }
