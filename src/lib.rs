@@ -1,86 +1,161 @@
 #[macro_use]
 extern crate rocket;
 
-
-// use rocket_dyn_templates::{Template, context};
 use rocket::{Build, Rocket};
 //use rocket::response::status;
 use rocket::request::FromParam;
 
-struct IntTemp {
-    degrees: f32
+
+#[catch(404)]
+fn not_found() -> &'static str {
+    "Nothing here, sorry!"
+}
+#[catch(500)]
+fn just_500() -> &'static str {
+    "Whoops!?"
 }
 
-impl<'a> FromParam<'a> for IntTemp<> {
-    type Error = &'a str;
-    fn from_param(param: &'a str) -> Result<Self, Self::Error> {
-        let parse_result = param.parse::<f32>();
-        match parse_result {
-            Ok(parsed) => Ok(IntTemp { degrees: parsed }),
-            Err(..) => Err(param)
+#[derive(Debug)]
+enum Scale {
+    Kelvin,
+    Celsius,
+    Farenheit,
+}
+
+impl Scale {
+    fn minimum(&self) -> f32 {
+        match *self {
+            Scale::Kelvin => 0.0,
+            Scale::Celsius => -273.15,
+            Scale::Farenheit => -459.66,
         }
-        // TODO stop below-absolute zero calculations
-        // match parse_result {
-        //     Ok(parsed) => {
-        //         if &parsed > &-459.66 {
-        //             Ok(IntTemp { degrees: parsed })
-        //         } else {
-        //             Err(param) // below absolute zero
-        //         },
-        //     Err(..) => Err(param)
-        // }
-        //     _ => { Err("should never get here") }
-        // }
+    }
+
+    fn below_minimum(&self, value: &f32) -> bool {
+        value < &self.minimum()
     }
 }
 
-#[catch(404)] fn not_found() -> &'static str { "Nothing here, sorry!" }
-#[catch(500)] fn just_500() -> &'static str { "Whoops!?" }
-// #[catch(default)] fn some_default() -> &'static str { "Everything else." }
+impl<'a> FromParam<'a> for Scale {
+    type Error = &'a str;
+    fn from_param(param: &'a str) -> Result<Self, Self::Error> {
+        if param.eq_ignore_ascii_case("celsius") || param.eq_ignore_ascii_case("c"){
+            Ok(Scale::Celsius)
+        } else if param.eq_ignore_ascii_case("farenheit") || param.eq_ignore_ascii_case("f"){
+            Ok(Scale::Farenheit)
+        } else if param.eq_ignore_ascii_case("kelvin") || param.eq_ignore_ascii_case("k"){
+            Ok(Scale::Kelvin)
+        } else {
+            Err("could not understand scale needs to be exactly one of celsius/farenheit,kelvin")
+        }
+    }
+}
 
-// #[get("/hello")]
-// fn hello() -> Template {
-//     Template::render("hello", context! { greeting: "Hello, world!  I am a rocket shuttle app", })
-// }
 
-// #[get("/")]
-// fn index() -> Template {
-//     Template::render("index", context! { greeting: "Hello, world!  I am an index page", })
-// }
+
+fn ftoc(from: f32) -> f32 {
+    (from - 32.0) * 5.0 / 9.0
+}
+
+fn ctof(from: f32) -> f32 {
+    (from * 9.0 / 5.0) + 32.0
+}
+
+fn ktoc(from: f32) -> f32 {
+    from - 273.15
+}
+
+fn ctok(from: f32) -> f32 {
+    from + 273.15
+}
+
+fn convert(from: Scale, to: Scale, input: f32) -> f32 {
+    match from {
+        Scale::Celsius => match to {
+            Scale::Farenheit => ctof(input),
+            Scale::Kelvin => ctok(input),
+            Scale::Celsius => input,
+        },
+        Scale::Farenheit => match to {
+            Scale::Farenheit => input,
+            Scale::Kelvin => ctok(ftoc(input)),
+            Scale::Celsius => ftoc(input),
+        },
+        Scale::Kelvin => match to {
+            Scale::Farenheit => ktoc(ctof(input)),
+            Scale::Kelvin => input,
+            Scale::Celsius => ktoc(input),
+        },
+    }
+}
+
 
 #[get("/")]
 fn index() -> &'static str {
-    "Hello.  Welcome to the least user-friendly temperature convertor on the web.\n\nGET https://jh-hello-shuttle.shuttleapp.rs/ftoc/<farenheit> - returns temperature in Celsius\n\nGET https://jh-hello-shuttle.shuttleapp.rs/ctof/<celsuis> - returns temperature in Farenheit\n\nYes, it doesn't understand absolute zero yet.  Use at your own risk.  Enjoy!"
+    "Hello.  Welcome to the least user-friendly temperature convertor on the web.
+
+    GET https://jh-hello-shuttle.shuttleapp.rs/ftoc/<farenheit> - returns temperature in Celsius
+
+    GET https://jh-hello-shuttle.shuttleapp.rs/ctof/<celsuis> - returns temperature in Farenheit
+
+    Now with a different api and added support for converting kelvin!
+
+    GET https://jh-hello-shuttle.shuttleapp.rs/<from>/<to>/<from_value>
+
+    where <from> and <to> must be exactly one of 'celsius', 'farenheit' or 'kelvin'
+    (or 'c', 'f', 'k' if you don't like typing)
+    and <from_value> is the known temperature (can include decimal point)
+
+    Example:
+
+    https://jh-hello-shuttle.shuttleapp.rs/farenheit/celsius/451
+
+    And finally it will refuse if you ask it to convert a temperature that is below absolute zero.
+
+    Use at your own risk.  Enjoy!"
 }
 
 #[get("/ctof/<celsius>")]
-fn c_to_f(celsius: IntTemp) -> Option<String> {
-    let converted = (celsius.degrees * 9.0 / 5.0 ) +32.0;
-    Option::from(converted.to_string())
+fn c_to_f(celsius: f32) -> Option<String> {
+    Option::from(ctof(celsius).to_string())
 }
 
 #[get("/ftoc/<farenheit>")]
-fn f_to_c(farenheit: IntTemp) -> Option<String> {
-    let converted = (farenheit.degrees - 32.0) * 5.0 / 9.0;
-    Option::from(converted.to_string())
+fn f_to_c(farenheit: f32) -> Option<String> {
+    Option::from(ftoc(farenheit).to_string())
 }
 
+#[get("/<from>/<to>/<input>")]
+fn convert_temperature(from: Scale, to: Scale, input: f32) -> Option<String> {
+
+    let result = if Scale::below_minimum(&from, &input) {
+        format!("Nothing can be {} {:?}, at least not in this universe. :-)", &input, &from)
+    } else {
+        convert(from, to, input).to_string()
+    };
+
+    Option::from(result)
+}
+
+/*
+TODOs
+
+get rid of old api
+integrate minimum check and give a sensible  error.
+try out maud https://maud.lambda.xyz/web-frameworks.html
+
+ */
 
 #[shuttle_service::main]
 async fn rocket() -> Result<Rocket<Build>, shuttle_service::Error> {
     let rocket = rocket::build()
         .register("/duff", catchers![just_500])
         .register("/", catchers![not_found, just_500])
-        .mount("/", routes![index, c_to_f, f_to_c])
-        // as of 0.3.0 shuttle just does not support anything external to the compiled .so
-        // so we can't use rocket's dynamic template support at the moment.
-        //.mount("/templates", routes![hello])
-        //.attach(Template::fairing())
+        .mount("/", routes![index, c_to_f, f_to_c, convert_temperature])
         ;
 
     Ok(rocket)
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -90,15 +165,24 @@ mod tests {
     #[test]
     fn c_to_f_works() {
         // 10 C = 50 F.
-        let result = c_to_f(IntTemp { degrees: 10 });
+        let result = c_to_f(10.0);
         assert_eq!(result, Option::Some(String::from("50")));
     }
 
     #[test]
     fn f_to_c_works() {
         // 50 F = 10 C.
-        let result = f_to_c(IntTemp { degrees: 50 });
+        let result = f_to_c(50.0);
         assert_eq!(result, Option::Some(String::from("10")));
     }
 
+    #[test]
+    fn ctof_works() {
+        assert_eq!(ctof(10.0), 50.0)
+    }
+
+    #[test]
+    fn ftoc_works() {
+        assert_eq!(ftoc(50.0), 10.0)
+    }
 }
