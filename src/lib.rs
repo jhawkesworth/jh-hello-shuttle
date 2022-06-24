@@ -4,7 +4,8 @@ extern crate rocket;
 use rocket::{Build, Rocket};
 //use rocket::response::status;
 use rocket::request::FromParam;
-
+use rocket::response::content::{RawHtml, RawJavaScript};
+use rocket::http::ContentType;
 
 #[catch(404)]
 fn not_found() -> &'static str {
@@ -51,8 +52,6 @@ impl<'a> FromParam<'a> for Scale {
     }
 }
 
-
-
 fn ftoc(from: f32) -> f32 {
     (from - 32.0) * 5.0 / 9.0
 }
@@ -89,9 +88,30 @@ fn convert(from: Scale, to: Scale, input: f32) -> f32 {
     }
 }
 
-
 #[get("/")]
-fn index() -> &'static str {
+fn index() -> RawHtml<&'static str> {
+    RawHtml(include_str!("../static_index.html"))
+}
+
+// instructions on how to build the game and compile into wasm
+// are here: https://hands-on-rust.com/2021/11/06/run-your-rust-games-in-a-browser-hands-on-rust-bonus-content/
+#[get("/loot")]
+fn loot_index() -> RawHtml<&'static str> {
+    RawHtml(include_str!("../loot_index.html"))
+}
+
+#[get("/loot_tables.js")]
+fn loot_js() -> RawJavaScript<&'static str> {
+    RawJavaScript(include_str!("../loot_tables.js"))
+}
+
+#[get("/loot_tables_bg.wasm")]
+fn loot_wasm() -> (ContentType, &'static [u8]){
+    (ContentType::WASM, include_bytes!("../loot_tables_bg.wasm"))
+}
+
+#[get("/textonlyindex")]
+fn index_as_text() -> &'static str {
     "Hello.  Welcome to the least user-friendly temperature convertor on the web.
 
     GET https://jh-hello-shuttle.shuttleapp.rs/ftoc/<farenheit> - returns temperature in Celsius
@@ -151,7 +171,8 @@ async fn rocket() -> Result<Rocket<Build>, shuttle_service::Error> {
     let rocket = rocket::build()
         .register("/duff", catchers![just_500])
         .register("/", catchers![not_found, just_500])
-        .mount("/", routes![index, c_to_f, f_to_c, convert_temperature])
+        .mount("/", routes![index, c_to_f, f_to_c, convert_temperature, index_as_text])
+        .mount("/", routes![loot_index, loot_js, loot_wasm])
         ;
 
     Ok(rocket)

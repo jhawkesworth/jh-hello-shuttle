@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta content="text/html;charset=utf-8" http-equiv="Content-Type" />
+</head>
+<body>
+<p>
+    Hello.  Welcome to the least user-friendly temperature convertor on the web.
+<p>
+    GET https://jh-hello-shuttle.shuttleapp.rs/ftoc/[farenheit] - returns temperature in Celsius
+<p>
+    GET https://jh-hello-shuttle.shuttleapp.rs/ctof/[celsuis] - returns temperature in Farenheit
+<p>
+    Now with a different api and added support for converting kelvin!
+<p>
+    GET https://jh-hello-shuttle.shuttleapp.rs/[from]/[to]/[from_value]
+<p>
+    where [from] and [to] must be exactly one of 'celsius', 'farenheit' or 'kelvin'
+    (or 'c', 'f', 'k' if you don't like typing)<p>
+    and [from_value] is the known temperature (can include decimal point)
+<p>
+    Example:
+<p>
+    <a href="https://jh-hello-shuttle.shuttleapp.rs/farenheit/celsius/451">https://jh-hello-shuttle.shuttleapp.rs/farenheit/celsius/451</a>
+<p>
+    And finally it will refuse if you ask it to convert a temperature that is below absolute zero.
+<p>
+    Use at your own risk.  Enjoy!
+</body>
+</html>

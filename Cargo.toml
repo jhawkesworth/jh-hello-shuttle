@@ -1,6 +1,6 @@
 [package]
 name = "jh-hello-shuttle"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2021"
 description = "my first shuttle/rocket project"
 
@@ -11,6 +11,7 @@ crate-type = ["cdylib"]
 
 [dependencies]
 rocket = "0.5.0-rc.2"
+sqlx = { version = "0.5", features = ["runtime-tokio-native-tls", "postgres"] }
 shuttle-service = { version = "0.3", features = ["web-rocket"] }
 
 
