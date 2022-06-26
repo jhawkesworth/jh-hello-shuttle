@@ -3,9 +3,9 @@ extern crate rocket;
 
 use rocket::{Build, Rocket};
 //use rocket::response::status;
+use rocket::http::ContentType;
 use rocket::request::FromParam;
 use rocket::response::content::{RawHtml, RawJavaScript};
-use rocket::http::ContentType;
 
 #[catch(404)]
 fn not_found() -> &'static str {
@@ -40,11 +40,11 @@ impl Scale {
 impl<'a> FromParam<'a> for Scale {
     type Error = &'a str;
     fn from_param(param: &'a str) -> Result<Self, Self::Error> {
-        if param.eq_ignore_ascii_case("celsius") || param.eq_ignore_ascii_case("c"){
+        if param.eq_ignore_ascii_case("celsius") || param.eq_ignore_ascii_case("c") {
             Ok(Scale::Celsius)
-        } else if param.eq_ignore_ascii_case("farenheit") || param.eq_ignore_ascii_case("f"){
+        } else if param.eq_ignore_ascii_case("farenheit") || param.eq_ignore_ascii_case("f") {
             Ok(Scale::Farenheit)
-        } else if param.eq_ignore_ascii_case("kelvin") || param.eq_ignore_ascii_case("k"){
+        } else if param.eq_ignore_ascii_case("kelvin") || param.eq_ignore_ascii_case("k") {
             Ok(Scale::Kelvin)
         } else {
             Err("could not understand scale needs to be exactly one of celsius/farenheit,kelvin")
@@ -106,7 +106,7 @@ fn loot_js() -> RawJavaScript<&'static str> {
 }
 
 #[get("/loot_tables_bg.wasm")]
-fn loot_wasm() -> (ContentType, &'static [u8]){
+fn loot_wasm() -> (ContentType, &'static [u8]) {
     (ContentType::WASM, include_bytes!("../loot_tables_bg.wasm"))
 }
 
@@ -147,9 +147,11 @@ fn f_to_c(farenheit: f32) -> Option<String> {
 
 #[get("/<from>/<to>/<input>")]
 fn convert_temperature(from: Scale, to: Scale, input: f32) -> Option<String> {
-
     let result = if Scale::below_minimum(&from, &input) {
-        format!("Nothing can be {} {:?}, at least not in this universe. :-)", &input, &from)
+        format!(
+            "Nothing can be {} {:?}, at least not in this universe. :-)",
+            &input, &from
+        )
     } else {
         convert(from, to, input).to_string()
     };
@@ -171,9 +173,11 @@ async fn rocket() -> Result<Rocket<Build>, shuttle_service::Error> {
     let rocket = rocket::build()
         .register("/duff", catchers![just_500])
         .register("/", catchers![not_found, just_500])
-        .mount("/", routes![index, c_to_f, f_to_c, convert_temperature, index_as_text])
-        .mount("/", routes![loot_index, loot_js, loot_wasm])
-        ;
+        .mount(
+            "/",
+            routes![index, c_to_f, f_to_c, convert_temperature, index_as_text],
+        )
+        .mount("/", routes![loot_index, loot_js, loot_wasm]);
 
     Ok(rocket)
 }
