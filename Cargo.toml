@@ -7,7 +7,7 @@ description = "my first shuttle/rocket project"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [lib]
-crate-type = ["cdylib"]
+
 
 [dependencies]
 rocket = "0.5.0-rc.2"
