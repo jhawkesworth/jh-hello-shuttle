@@ -105,10 +105,10 @@ fn loot_js() -> RawJavaScript<&'static str> {
     RawJavaScript(include_str!("../loot_tables.js"))
 }
 
-#[get("/loot_tables_bg.wasm")]
-fn loot_wasm() -> (ContentType, &'static [u8]) {
-    (ContentType::WASM, include_bytes!("../loot_tables_bg.wasm"))
-}
+// #[get("/loot_tables_bg.wasm")]
+// fn loot_wasm() -> (ContentType, &'static [u8]) {
+//     (ContentType::WASM, include_bytes!("../loot_tables_bg.wasm"))
+// }
 
 #[get("/textonlyindex")]
 fn index_as_text() -> &'static str {
@@ -177,7 +177,9 @@ async fn rocket() -> Result<Rocket<Build>, shuttle_service::Error> {
             "/",
             routes![index, c_to_f, f_to_c, convert_temperature, index_as_text],
         )
-        .mount("/", routes![loot_index, loot_js, loot_wasm]);
+        .mount("/", routes![loot_index, loot_js])
+        // .mount("/", routes![loot_index, loot_js, loot_wasm])
+        ;
 
     Ok(rocket)
 }
