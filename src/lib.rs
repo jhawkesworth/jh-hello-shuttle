@@ -170,7 +170,7 @@ try out maud https://maud.lambda.xyz/web-frameworks.html
  */
 
 #[shuttle_service::main]
-async fn rocket(#[shuttle_static_folder::StaticFolder] static_folder: PathBuf) -> Result<Rocket<Build>, shuttle_service::Error> {
+async fn rocket(#[shuttle_static_folder::StaticFolder] _static_folder: PathBuf) -> Result<Rocket<Build>, shuttle_service::Error> {
     let rocket = rocket::build()
         .register("/duff", catchers![just_500])
         .register("/", catchers![not_found, just_500])
