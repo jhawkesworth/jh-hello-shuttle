@@ -2,7 +2,6 @@
 extern crate rocket;
 
 use std::path::PathBuf;
-use rocket::{Build, Rocket};
 //use rocket::response::status;
 use rocket::http::ContentType;
 use rocket::request::FromParam;
@@ -169,8 +168,8 @@ try out maud https://maud.lambda.xyz/web-frameworks.html
 
  */
 
-#[shuttle_service::main]
-async fn rocket(#[shuttle_static_folder::StaticFolder] _static_folder: PathBuf) -> Result<Rocket<Build>, shuttle_service::Error> {
+#[shuttle_runtime::main]
+async fn rocket(#[shuttle_static_folder::StaticFolder] _static_folder: PathBuf) -> shuttle_rocket::ShuttleRocket {
     let rocket = rocket::build()
         .register("/duff", catchers![just_500])
         .register("/", catchers![not_found, just_500])
@@ -182,7 +181,7 @@ async fn rocket(#[shuttle_static_folder::StaticFolder] _static_folder: PathBuf) 
         .mount("/", routes![loot_index, loot_js, loot_wasm])
         ;
 
-    Ok(rocket)
+    Ok(rocket.into())
 }
 
 #[cfg(test)]
