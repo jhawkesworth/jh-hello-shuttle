@@ -2,10 +2,10 @@
 extern crate rocket;
 
 use std::path::PathBuf;
-//use rocket::response::status;
 use rocket::http::ContentType;
 use rocket::request::FromParam;
 use rocket::response::content::{RawHtml, RawJavaScript};
+use rocket::fs::{FileServer, relative};
 
 #[catch(404)]
 fn not_found() -> &'static str {
@@ -82,11 +82,13 @@ fn convert(from: Scale, to: Scale, input: f32) -> f32 {
         },
         Scale::Kelvin => match to {
             Scale::Farenheit => ktoc(ctof(input)),
-            Scale::Kelvin => input,
-            Scale::Celsius => ktoc(input),
-        },
+
+            Scale::Kelvin => { input }
+            Scale::Celsius => { ktoc(input) }
+        }
     }
 }
+
 
 #[get("/")]
 fn index() -> RawHtml<&'static str> {
@@ -95,20 +97,20 @@ fn index() -> RawHtml<&'static str> {
 
 // instructions on how to build the game and compile into wasm
 // are here: https://hands-on-rust.com/2021/11/06/run-your-rust-games-in-a-browser-hands-on-rust-bonus-content/
-#[get("/loot")]
-fn loot_index() -> RawHtml<&'static str> {
-    RawHtml(include_str!("../static/loot_index.html"))
-}
-
-#[get("/loot_tables.js")]
-fn loot_js() -> RawJavaScript<&'static str> {
-    RawJavaScript(include_str!("../static/loot_tables.js"))
-}
-
-#[get("/loot_tables_bg.wasm")]
-fn loot_wasm() -> (ContentType, &'static [u8]) {
-    (ContentType::WASM, include_bytes!("../static/loot_tables_bg.wasm"))
-}
+// #[get("/loot")]
+// fn loot_index() -> RawHtml<&'static str> {
+//     RawHtml(include_str!("../static/loot_index.html"))
+// }
+//
+// #[get("/loot_tables.js")]
+// fn loot_js() -> RawJavaScript<&'static str> {
+//     RawJavaScript(include_str!("../static/loot_tables.js"))
+// }
+//
+// #[get("/loot_tables_bg.wasm")]
+// fn loot_wasm() -> (ContentType, &'static [u8]) {
+//     (ContentType::WASM, include_bytes!("../static/loot_tables_bg.wasm"))
+// }
 
 #[get("/textonlyindex")]
 fn index_as_text() -> &'static str {
@@ -170,6 +172,7 @@ try out maud https://maud.lambda.xyz/web-frameworks.html
 
 #[shuttle_runtime::main]
 async fn rocket(#[shuttle_static_folder::StaticFolder] _static_folder: PathBuf) -> shuttle_rocket::ShuttleRocket {
+
     let rocket = rocket::build()
         .register("/duff", catchers![just_500])
         .register("/", catchers![not_found, just_500])
@@ -178,7 +181,8 @@ async fn rocket(#[shuttle_static_folder::StaticFolder] _static_folder: PathBuf) 
             routes![index, c_to_f, f_to_c, convert_temperature, index_as_text],
         )
         //.mount("/", routes![loot_index, loot_js])
-        .mount("/", routes![loot_index, loot_js, loot_wasm])
+        // .mount("/", routes![loot_index, loot_js, loot_wasm])
+        .mount("/", FileServer::from(relative!("static")))
         ;
 
     Ok(rocket.into())
