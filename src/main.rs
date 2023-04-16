@@ -2,9 +2,7 @@
 extern crate rocket;
 
 use std::path::PathBuf;
-use rocket::http::ContentType;
 use rocket::request::FromParam;
-use rocket::response::content::{RawHtml, RawJavaScript};
 use rocket::fs::{FileServer, relative};
 
 #[catch(404)]
@@ -90,52 +88,10 @@ fn convert(from: Scale, to: Scale, input: f32) -> f32 {
 }
 
 
-#[get("/")]
-fn index() -> RawHtml<&'static str> {
-    RawHtml(include_str!("../static_index.html"))
-}
 
 // instructions on how to build the game and compile into wasm
 // are here: https://hands-on-rust.com/2021/11/06/run-your-rust-games-in-a-browser-hands-on-rust-bonus-content/
-// #[get("/loot")]
-// fn loot_index() -> RawHtml<&'static str> {
-//     RawHtml(include_str!("../static/loot_index.html"))
-// }
-//
-// #[get("/loot_tables.js")]
-// fn loot_js() -> RawJavaScript<&'static str> {
-//     RawJavaScript(include_str!("../static/loot_tables.js"))
-// }
-//
-// #[get("/loot_tables_bg.wasm")]
-// fn loot_wasm() -> (ContentType, &'static [u8]) {
-//     (ContentType::WASM, include_bytes!("../static/loot_tables_bg.wasm"))
-// }
 
-#[get("/textonlyindex")]
-fn index_as_text() -> &'static str {
-    "Hello.  Welcome to the least user-friendly temperature convertor on the web.
-
-    GET https://jh-hello-shuttle.shuttleapp.rs/ftoc/<farenheit> - returns temperature in Celsius
-
-    GET https://jh-hello-shuttle.shuttleapp.rs/ctof/<celsuis> - returns temperature in Farenheit
-
-    Now with a different api and added support for converting kelvin!
-
-    GET https://jh-hello-shuttle.shuttleapp.rs/<from>/<to>/<from_value>
-
-    where <from> and <to> must be exactly one of 'celsius', 'farenheit' or 'kelvin'
-    (or 'c', 'f', 'k' if you don't like typing)
-    and <from_value> is the known temperature (can include decimal point)
-
-    Example:
-
-    https://jh-hello-shuttle.shuttleapp.rs/farenheit/celsius/451
-
-    And finally it will refuse if you ask it to convert a temperature that is below absolute zero.
-
-    Use at your own risk.  Enjoy!"
-}
 
 #[get("/ctof/<celsius>")]
 fn c_to_f(celsius: f32) -> Option<String> {
@@ -178,7 +134,7 @@ async fn rocket(#[shuttle_static_folder::StaticFolder] _static_folder: PathBuf) 
         .register("/", catchers![not_found, just_500])
         .mount(
             "/",
-            routes![index, c_to_f, f_to_c, convert_temperature, index_as_text],
+            routes![c_to_f, f_to_c, convert_temperature],
         )
         //.mount("/", routes![loot_index, loot_js])
         // .mount("/", routes![loot_index, loot_js, loot_wasm])
